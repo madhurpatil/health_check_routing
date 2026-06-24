@@ -1,0 +1,26 @@
+2026-06-24 17:13:59,384 - ERROR - Input JSON file not found.
+2026-06-24 17:13:59,387 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,387 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,387 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,387 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,388 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,388 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,389 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,389 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,390 - ERROR - No healthy servers available.
+2026-06-24 17:13:59,391 - ERROR - No healthy servers available.
+2026-06-24 17:15:26,179 - INFO - Server_A is HEALTHY
+2026-06-24 17:15:26,179 - WARNING - Server_B is DOWN
+2026-06-24 17:15:26,179 - INFO - Server_C is HEALTHY
+2026-06-24 17:15:26,179 - WARNING - Server_D is DOWN
+2026-06-24 17:15:26,179 - INFO - Server_E is HEALTHY
+2026-06-24 17:15:26,181 - INFO - Request routed to Server_A
+2026-06-24 17:15:26,181 - INFO - Request routed to Server_C
+2026-06-24 17:15:26,182 - INFO - Request routed to Server_E
+2026-06-24 17:15:26,182 - INFO - Request routed to Server_A
+2026-06-24 17:15:26,182 - INFO - Request routed to Server_C
+2026-06-24 17:15:26,182 - INFO - Request routed to Server_E
+2026-06-24 17:15:26,183 - INFO - Request routed to Server_A
+2026-06-24 17:15:26,183 - INFO - Request routed to Server_C
+2026-06-24 17:15:26,183 - INFO - Request routed to Server_E
+2026-06-24 17:15:26,183 - INFO - Request routed to Server_A
