@@ -1,10 +1,14 @@
 import json
 import logging
 import os
+import time
+from flask import Flask, jsonify
 
-# --------------------------------------------------
-# Logging Configuration
-# --------------------------------------------------
+# ----------------------------------------
+# Flask App
+# ----------------------------------------
+
+app = Flask(__name__)
 
 logging.basicConfig(
     filename="health_check.log",
@@ -12,59 +16,65 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# --------------------------------------------------
-# Global Variable For Round Robin
-# --------------------------------------------------
-
 current_index = 0
 
-# --------------------------------------------------
+# ----------------------------------------
+# Statistics Dictionary
+# ----------------------------------------
+
+lb_stats = {
+    "total_requests": 0,
+    "active_tasks": 0,
+    "worker_distribution": {},
+    "current_worker": None,
+    "algorithm": "Round Robin",
+    "average_response_time_ms": 0
+}
+
+response_times = []
+
+
+# ----------------------------------------
 # Load Server Status
-# --------------------------------------------------
+# ----------------------------------------
 
 def load_server_status(file_path):
     try:
         with open(file_path, "r") as file:
             return json.load(file)
 
-    except FileNotFoundError:
-        logging.error("Input JSON file not found.")
+    except Exception:
         return {}
 
-    except Exception as e:
-        logging.error(f"Error loading file: {e}")
-        return {}
 
-# --------------------------------------------------
-# Health Check
-# --------------------------------------------------
+# ----------------------------------------
+# Healthy Servers
+# ----------------------------------------
 
 def get_healthy_servers(server_data):
 
-    healthy_servers = []
+    healthy = []
 
     for server, status in server_data.items():
 
         if status.lower() == "healthy":
-            healthy_servers.append(server)
-            logging.info(f"{server} is HEALTHY")
+            healthy.append(server)
 
-        else:
-            logging.warning(f"{server} is DOWN")
+    return healthy
 
-    return healthy_servers
 
-# --------------------------------------------------
-# Round Robin Routing
-# --------------------------------------------------
+# ----------------------------------------
+# Round Robin
+# ----------------------------------------
 
 def route_request(healthy_servers):
 
     global current_index
 
     if not healthy_servers:
-        logging.error("No healthy servers available.")
         return None
+
+    start = time.time()
 
     server = healthy_servers[
         current_index % len(healthy_servers)
@@ -72,88 +82,93 @@ def route_request(healthy_servers):
 
     current_index += 1
 
-    logging.info(
-        f"Request routed to {server}"
+    lb_stats["total_requests"] += 1
+    lb_stats["current_worker"] = server
+
+    lb_stats["worker_distribution"].setdefault(server, 0)
+    lb_stats["worker_distribution"][server] += 1
+
+    lb_stats["active_tasks"] += 1
+
+    time.sleep(0.05)
+
+    lb_stats["active_tasks"] -= 1
+
+    elapsed = (time.time() - start) * 1000
+
+    response_times.append(elapsed)
+
+    lb_stats["average_response_time_ms"] = round(
+        sum(response_times) / len(response_times), 2
     )
+
+    logging.info(f"Request routed to {server}")
 
     return server
 
-# --------------------------------------------------
-# Save Healthy Servers Output
-# --------------------------------------------------
 
-def save_output(healthy_servers):
+# ----------------------------------------
+# Route Request API
+# ----------------------------------------
 
-    os.makedirs("output", exist_ok=True)
+@app.route("/route")
+def route():
 
-    output = {
-        "healthy_servers": healthy_servers
-    }
+    server_data = load_server_status("server_status.json")
 
-    with open(
-        "output/healthy_servers.json",
-        "w"
-    ) as file:
+    healthy = get_healthy_servers(server_data)
 
-        json.dump(
-            output,
-            file,
-            indent=4
-        )
+    server = route_request(healthy)
 
-# --------------------------------------------------
-# Simulate Multiple Requests
-# --------------------------------------------------
+    return jsonify({
+        "server": server
+    })
 
-def simulate_requests(
-        healthy_servers,
-        total_requests=10):
 
-    print("\nRouting Requests:\n")
+# ----------------------------------------
+# Load Balancer Statistics API
+# ----------------------------------------
 
-    for i in range(total_requests):
+@app.route("/lb/stats")
+def load_balancer_stats():
 
-        server = route_request(
-            healthy_servers
-        )
+    return jsonify({
+        "algorithm": lb_stats["algorithm"],
+        "current_worker": lb_stats["current_worker"],
+        "total_requests": lb_stats["total_requests"],
+        "active_tasks": lb_stats["active_tasks"],
+        "average_response_time_ms":
+            lb_stats["average_response_time_ms"],
+        "worker_distribution":
+            lb_stats["worker_distribution"]
+    })
 
-        print(
-            f"Request {i+1} --> {server}"
-        )
 
-# --------------------------------------------------
-# Main Function
-# --------------------------------------------------
+# ----------------------------------------
+# Healthy Servers API
+# ----------------------------------------
 
-def main():
+@app.route("/healthy")
+def healthy():
 
-    print(
-        "\n===== HEALTH CHECK ROUTING SYSTEM =====\n"
-    )
+    data = load_server_status("server_status.json")
 
-    server_data = load_server_status(
-        "server_status.json"
-    )
+    healthy = get_healthy_servers(data)
 
-    healthy_servers = get_healthy_servers(
-        server_data
-    )
+    return jsonify({
+        "healthy_servers": healthy
+    })
 
-    save_output(healthy_servers)
 
-    print(
-        "Healthy Servers:",
-        healthy_servers
-    )
-
-    simulate_requests(
-        healthy_servers,
-        total_requests=10
-    )
-
-# --------------------------------------------------
-# Driver Code
-# --------------------------------------------------
+# ----------------------------------------
+# Run Server
+# ----------------------------------------
 
 if __name__ == "__main__":
-    main()
+    print("Starting Flask server...")
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=False,
+        use_reloader=False
+    )
